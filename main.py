@@ -75,16 +75,16 @@ def user_input(user_question):
 def main():
     st.set_page_config("Chat PDF")
     st.header("Chat with PDF 💁")
-    st.markdown(
-        """
-        <style>
-        [data-testid="stSidebar"] {
-            pointer-events: none;
-            opacity: 0.5;
-        }
-        </style>
-        """, unsafe_allow_html=True
-    )
+    # st.markdown(
+    #     """
+    #     <style>
+    #     [data-testid="stSidebar"] {
+    #         pointer-events: none;
+    #         opacity: 0.5;
+    #     }
+    #     </style>
+    #     """, unsafe_allow_html=True
+    # )
     user_question = st.text_input("Ask a Question from the PDF Files")
 
     if user_question:
