@@ -69,12 +69,12 @@ def user_input(user_question):
         , return_only_outputs=True)
 
     print(response)
-    st.write("Reply: ", response["output_text"])
+    st.write("DONA: ", response["output_text"])
 
 
 def main():
     st.set_page_config("Chat PDF")
-    st.header("Chat with PDF using Gemini💁")
+    st.header("Chat with PDF 💁")
     st.markdown(
         """
         <style>
