@@ -43,25 +43,22 @@ def speak_text(text):
     engine.say(text)
     engine.runAndWait()
 
-# Function to copy text to clipboard
-# def copy_to_clipboard(text):
-#     pyperclip.copy(text)
-#     st.success("Text copied to clipboard!")
-
 # Initialize speech recognizer
 recognizer = sr.Recognizer()
 
 # Streamlit interface
 st.title("DevOps Chatbot")
 
-# Initialize an empty message history
-messages_history = []
+# Initialize session state if not already done
+if "messages_history" not in st.session_state:
+    st.session_state.messages_history = []
 
-# Initialize session state
 if "listening" not in st.session_state:
     st.session_state.listening = False
+
 if "paused" not in st.session_state:
     st.session_state.paused = False
+
 if "speech_process" not in st.session_state:
     st.session_state.speech_process = None
 
@@ -80,19 +77,9 @@ if col1.button("Start Listening"):
 if col2.button("Pause"):
     st.session_state.listening = False
     st.session_state.paused = True
-
     st.info("Paused. Click 'Start Listening' to continue.")
     if st.session_state.speech_process:
-        st.session_state.speech_process.terminate() # Stop any ongoing speech output
-        st.write(messages_history)
-
-# Copy Response button
-# if col3.button("Copy Response"):
-#     if messages_history:
-#         last_response = messages_history[-1].content
-#         copy_to_clipboard(last_response)
-#     else:
-#         st.warning("No response to copy.")
+        st.session_state.speech_process.terminate()  # Stop any ongoing speech output
 
 # Listening and processing
 if st.session_state.listening:
@@ -114,10 +101,10 @@ if st.session_state.listening:
                 st.session_state.listening = False
             else:
                 # Append user message to history
-                messages_history.append(HumanMessage(content=input_message))
+                st.session_state.messages_history.append(HumanMessage(content=input_message))
 
                 # Generate response using LangChain
-                response = chain.invoke({"messages": messages_history})
+                response = chain.invoke({"messages": st.session_state.messages_history})
 
                 # Extract and display the output from the response
                 output = response.content
@@ -127,7 +114,7 @@ if st.session_state.listening:
                 speak_text(output)
 
                 # Append the model's response to history
-                messages_history.append(HumanMessage(content=output))
+                st.session_state.messages_history.append(HumanMessage(content=output))
 
         except sr.UnknownValueError:
             st.write("Sorry, I did not understand that. Could you please repeat?")
@@ -135,16 +122,15 @@ if st.session_state.listening:
             st.write(f"Could not request results from Google Speech Recognition service; {e}")
 
 # Initial welcome message
-if not messages_history and not st.session_state.paused:
+if not st.session_state.messages_history and not st.session_state.paused:
     welcome = 'Welcome to my Chatbot'
     st.write(welcome)
-    # st.session_state.speech_process = speak_text(welcome)
 
 # Display the conversation history
 st.markdown("**Conversation History:**")
-for message in messages_history:
+for message in st.session_state.messages_history:
     if message.content.startswith("Bot:"):
         # If it's the bot's response, wrap the content in a code block
-        st.code(message.content[-5], language="yaml")
+        st.code(message.content, language="yaml")
     else:
         st.markdown(f"You: {message.content}")
