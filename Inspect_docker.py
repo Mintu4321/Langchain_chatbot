@@ -6,6 +6,7 @@ import os
 from dotenv import load_dotenv
 import docker
 import pandas as pd
+import csv
 
 # Load environment variables from .env file
 load_dotenv()
@@ -19,7 +20,6 @@ llm = ChatGoogleGenerativeAI(model='gemini-pro', temperature=0.7)
 # Initialize Docker client
 client = docker.from_env()
 
-
 def docker_monitor():
     """
     Retrieve a list of all Docker containers (running and stopped).
@@ -27,6 +27,15 @@ def docker_monitor():
     containers = client.containers.list(all=True)  # List all containers
     return containers
 
+def get_container_logs(container, max_lines=10):
+    """
+    Retrieve the logs of a Docker container, limiting to a specified number of lines.
+    """
+    try:
+        logs = container.logs(tail=max_lines).decode('utf-8')  # Retrieve last 'max_lines' lines of logs
+        return logs
+    except Exception as e:
+        return f"Error retrieving logs: {e}"
 
 def docker_inspect():
     """
@@ -51,18 +60,6 @@ def docker_inspect():
 
     return container_attributes
 
-
-def get_container_logs(container, max_lines=10):
-    """
-    Retrieve the logs of a Docker container, limiting to a specified number of lines.
-    """
-    try:
-        logs = container.logs(tail=max_lines).decode('utf-8')  # Retrieve last 'max_lines' lines of logs
-        return logs
-    except Exception as e:
-        return f"Error retrieving logs: {e}"
-
-
 def create_dataframe(container_attributes):
     """
     Create a Pandas DataFrame from the Docker container attributes.
@@ -70,14 +67,12 @@ def create_dataframe(container_attributes):
     df = pd.DataFrame(container_attributes)
     return df
 
-
 def save_to_csv(df, filename="docker_analysis_output.csv"):
     """
     Save the DataFrame to a CSV file.
     """
-    df.to_csv(filename, index=False)
+    df.to_csv(filename, index=False, quoting=csv.QUOTE_NONNUMERIC)
     print(f"DataFrame saved to {filename}")
-
 
 def llm_monitor():
     """
@@ -94,7 +89,7 @@ def llm_monitor():
         input_variables=['docker_containers'],
         template=(
             "Analyze the following Docker containers, providing a concise summary "
-            "of their status, potential issues, and recommendations. Limit details to avoid token overflow. "
+            "of their status, potential issues, recommendations and docker logs. Limit details to avoid token overflow. "
             "Here are the containers and their last few logs: {docker_containers}"
         )
     )
@@ -102,8 +97,8 @@ def llm_monitor():
     # Create the LLM chain
     llm_chain = LLMChain(llm=llm, prompt=prompt_template)
 
-    # Generate the output by passing the string input instead of a dictionary
-    output = llm_chain.invoke({"docker_containers": container_summaries_str})
+    # Generate the output by passing the string input
+    output = llm_chain.run({'docker_containers': container_summaries_str})
 
     # Print or return the output for debugging
     print(output)
@@ -116,7 +111,6 @@ def llm_monitor():
     save_to_csv(final_df)
 
     return output
-
 
 if __name__ == "__main__":
     llm_monitor()
